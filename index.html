@@ -491,11 +491,23 @@ const PALETAS = {
           T:'#4a90e8', t:'#3a74c0', P:'#8a4a3a', p:'#6e3a2c', Z:'#2a2a2a' },
 };
 
+// Beba lleva el pelo a la barbilla: a cada expresión se le alarga la
+// melena dos filas (las cabezas base son de pelo corto, para invitados).
+function melena(rows) {
+  const r = rows.slice();
+  r[9]  = '..H' + r[9].slice(3, 13) + 'H..';
+  r[10] = '..HH' + r[10].slice(4, 12) + 'HH..';
+  return r;
+}
+const CABEZAS_BEBA = {};
+for (const [nc, rows] of Object.entries(CABEZAS)) CABEZAS_BEBA[nc] = melena(rows);
+
 // Se rasterizan una vez por (paleta, parte): dibujar es solo drawImage
 const SPR = {};
 for (const [np, pal] of Object.entries(PALETAS)) {
   SPR[np] = { cabeza: {}, cuerpo: {} };
-  for (const [nc, rows] of Object.entries(CABEZAS)) SPR[np].cabeza[nc] = makeSprite(rows, pal);
+  const cabezas = np === 'beba' ? CABEZAS_BEBA : CABEZAS;
+  for (const [nc, rows] of Object.entries(cabezas)) SPR[np].cabeza[nc] = makeSprite(rows, pal);
   for (const [nc, rows] of Object.entries(CUERPOS)) SPR[np].cuerpo[nc] = makeSprite(rows, pal);
 }
 
@@ -1300,13 +1312,7 @@ function dibujarTextos(r, c, fecha, t, actividad) {
   }
 
   const claro = '#ffffff', som = 'rgba(0,0,0,0.45)';
-  if (r.esFiesta) {
-    textoSombra('¡HOY ES EL GRAN DÍA!', cx, H - 54, 1, claro, som);
-    textoSombra('★ 5 DE ENERO ★', cx, H - 38, 2, PC.y, som);
-  } else {
-    textoSombra(actividad.texto, cx, H - 54, 1, claro, som);
-    textoSombra('★ 5 DE ENERO ★', cx, H - 38, 2, PC.y, som);
-  }
+  textoSombra(r.esFiesta ? '¡HOY ES EL GRAN DÍA!' : actividad.texto, cx, H - 46, 1, claro, som);
 }
 
 // ============================================================
