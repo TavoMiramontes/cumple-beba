@@ -1173,6 +1173,15 @@ const SND = {
       this.out.connect(this.ac.destination);
     }
     if (this.ac.state === 'suspended') this.ac.resume();
+    // iOS solo destraba el audio si algo suena dentro del gesto: un
+    // buffer vacío basta y no se oye
+    if (!this.destrabado) {
+      const src = this.ac.createBufferSource();
+      src.buffer = this.ac.createBuffer(1, 1, 22050);
+      src.connect(this.ac.destination);
+      src.start(0);
+      this.destrabado = true;
+    }
   },
   tone(f0, f1, dur, type, vol, delay) {
     if (this.muted || !this.ac) return;
@@ -1274,17 +1283,20 @@ botonSonido.addEventListener('click', () => {
   pintarBoton();
 });
 // Si la última vez dejó el sonido encendido, con el primer toque en
-// cualquier parte vuelve a sonar (el botón no es obligatorio).
-try {
-  if (localStorage.getItem('beba_sonido') === '1') {
-    const reanudar = (e) => {
-      if (e.target === botonSonido) return;   // el botón ya lo hace en su click
-      window.removeEventListener('pointerdown', reanudar);
-      SND.ensure(); SND.muted = false; pintarBoton();
-    };
-    window.addEventListener('pointerdown', reanudar);
-  }
-} catch (e) {}
+// cualquier parte vuelve a sonar (el botón no es obligatorio). Se escucha
+// click y touchend, no pointerdown: en el celular pointerdown no cuenta
+// como gesto para el AudioContext y el icono cambiaba sin que sonara.
+let quiereSonido = false;
+try { quiereSonido = localStorage.getItem('beba_sonido') === '1'; } catch (e) {}
+function reanudar(e) {
+  if (e.target === botonSonido) return;   // el botón ya lo hace en su click
+  if (quiereSonido && SND.muted) { SND.ensure(); SND.muted = false; pintarBoton(); }
+  // si el contexto quedó suspendido (pestaña en segundo plano, bloqueo
+  // de pantalla), cualquier toque lo vuelve a levantar
+  else if (!SND.muted && SND.ac && SND.ac.state === 'suspended') SND.ac.resume();
+}
+window.addEventListener('click', reanudar);
+window.addEventListener('touchend', reanudar);
 pintarBoton();
 
 // ============================================================
